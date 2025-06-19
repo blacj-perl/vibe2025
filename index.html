@@ -1,3 +1,4 @@
+@@ -1,103 +1,136 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -43,9 +44,7 @@
     </style>
 </head>
 <body>
-
 <h2 style="text-align: center;">To-Do List</h2>
-
 <table id="todoList">
     <thead>
         <tr>
@@ -58,7 +57,6 @@
         {{rows}}
     </tbody>
 </table>
-
 <div class="add-form">
     <input type="text" id="newItem" placeholder="Enter new item">
     <button onclick="addItem()">Add</button>
@@ -81,9 +79,30 @@
             `;
             listBody.appendChild(row);
         });
+    async function renderList() {
+        try {
+            const response = await fetch('/items');
+            const items = await response.json();
+
+            const listBody = document.getElementById('listBody');
+            listBody.innerHTML = '';
+
+            items.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${item.text}</td>
+                    <td><button onclick="removeItem(${item.id})">Remove</button></td>
+                `;
+                listBody.appendChild(row);
+            });
+        } catch (error) {
+            console.error('Error loading items:', error);
+        }
     }
 
     function addItem() {
+    async function addItem() {
         const newItemInput = document.getElementById('newItem');
         const newItemText = newItemInput.value.trim();
 
@@ -91,14 +110,48 @@
             items.push({ id: nextId++, text: newItemText });
             newItemInput.value = '';
             renderList();
+            try {
+                const response = await fetch('/items', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: newItemText })
+                });
+
+                if (response.ok) {
+                    newItemInput.value = '';
+                    await renderList();
+                } else {
+                    console.error('Failed to add item');
+                }
+            } catch (error) {
+                console.error('Error adding item:', error);
+            }
         }
     }
 
     function removeItem(index) {
         items.splice(index, 1);
         renderList();
+    async function removeItem(itemId) {
+        try {
+            const response = await fetch(`/items/${itemId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                await renderList();
+            } else {
+                console.error('Failed to remove item');
+            }
+        } catch (error) {
+            console.error('Error removing item:', error);
+        }
     }
+
+    // Initial render
+    document.addEventListener('DOMContentLoaded', renderList);
 </script>
 
 </body>
-</html>
